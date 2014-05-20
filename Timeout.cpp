@@ -35,7 +35,6 @@ void Timeout::configure(short delay_ms, void (*callback)(), bool every_arg){
     short prescaler = 1024;
     setPrescaler(prescaler);
 
-    TCNT1 = 0; // reset
     OCR1A= int(delay_ms*F_CPU/prescaler/1000); // 1000 ms in 1 second
     timeoutCallback = callback;
 }
@@ -65,6 +64,7 @@ void Timeout::setPrescaler(short value){
 }
 
 void Timeout::start(){
+    TCNT1 = 0; // reset
     TIMSK1 = (1<< OCIE1A); // allow interrupt on compare
     sei();
 }
