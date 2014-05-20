@@ -4,6 +4,13 @@ Arduino Timeout (Russian)
 Библиотека использует Timer1 (16 бит). Целью библиотеки является удобный асинхронный запуск задач
 с задержкой.
 
+Установка
+=================
+```
+sudo git clone https://github.com/OrelSokolov/Timeout /usr/share/arduino/libraries/Timeout
+```
+Либо в папку с установленной Arduino IDE.
+
 
 Использование
 =================

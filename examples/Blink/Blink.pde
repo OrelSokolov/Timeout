@@ -1,8 +1,6 @@
-#include "Timeout.h"
+#include <Timeout.h>
 
 #define toggle(pin) digitalWrite(pin, !digitalRead(pin))
-
-volatile int state = HIGH;
 
 void toggleLed(){
   toggle(13);
