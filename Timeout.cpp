@@ -3,17 +3,27 @@
 
 #define F_CPU 16000000
 
-void (*timeoutCallback)();
-void stub(){}
+#define SET(V,bit) V|=(1<<bit)
+#define RESET(V,bit) V&=~(1<<bit)
+
+#define interrupts() sei()
+#define noInterrupts() cli()
+
+static void (*timeoutCallback)();
+static void stub(){}
 
 Timeout Timer1;
 
 ISR(TIMER1_COMPA_vect)
 {
-  TCNT1=0; // reset Timer
+  // Calling timeoutCallback can damage
+  // some data, because of changing data in
+  // status register. So, we need to save SREG
+  short SREG_before_interrupt = SREG;
   (*timeoutCallback)();
   if(!Timer1.every_flag){
     Timer1.kill();}
+  SREG = SREG_before_interrupt;
 }
 
 Timeout::Timeout(){
@@ -31,47 +41,69 @@ Timeout Timeout::every(short delay_ms, void (*callback)()){
 }
 
 void Timeout::configure(short delay_ms, void (*callback)(), bool every_arg){
+    short ms = (delay_ms<8000 && delay_ms > 1)? delay_ms : 100;
     every_flag = every_arg;
-    short prescaler = 1024;
-    setPrescaler(prescaler);
-
-    OCR1A= int(delay_ms*F_CPU/prescaler/1000); // 1000 ms in 1 second
+    prescaler = 1024;
     timeoutCallback = callback;
+    noInterrupts();
+      // Clear registers to avoid bugs
+      TCCR1A = 0;
+      TCCR1B = 0;
+      TCNT1  = 0;
+
+      SET(TCCR1B, WGM12); // CTC mode
+      SET(TIMSK1, OCIE1A); // allow interrupt on compare
+
+      OCR1A = int(ms*F_CPU/prescaler/1000);
+    interrupts();
 }
 
 void Timeout::setPrescaler(short value){
   switch(value){
     case 1:
-      TCCR1B |= (0 << CS12)|(0 << CS11)|(1 << CS10);
+      RESET(TCCR1B, CS12);
+      RESET(TCCR1B, CS11);
+        SET(TCCR1B, CS10);
       break;
     case 8:
-      TCCR1B |= (0 << CS12)|(1 << CS11)|(0 << CS10);
+      RESET(TCCR1B, CS12);
+        SET(TCCR1B, CS11);
+      RESET(TCCR1B, CS10);
       break;
     case 64:
-      TCCR1B |= (0 << CS12)|(1 << CS11)|(1 << CS10);
+      RESET(TCCR1B, CS12);
+        SET(TCCR1B, CS11);
+        SET(TCCR1B, CS10);
       break;
     case 256:
-      TCCR1B |= (1 << CS12)|(0 << CS11)|(0 << CS10);
+        SET(TCCR1B, CS12);
+      RESET(TCCR1B, CS11);
+      RESET(TCCR1B, CS10);
       break;
     case 1024:
-      TCCR1B |= (1 << CS12)|(0 << CS11)|(1 << CS10);
+        SET(TCCR1B, CS12);
+      RESET(TCCR1B, CS11);
+        SET(TCCR1B, CS10);
       break;
     default:
-      TCCR1B |= (0 << CS12)|(0 << CS11)|(0 << CS10);
+      RESET(TCCR1B, CS12);
+      RESET(TCCR1B, CS11);
+      RESET(TCCR1B, CS10);
       break;
   }
-
 }
 
 void Timeout::start(){
-    TCNT1 = 0; // reset
-    TIMSK1 = (1<< OCIE1A); // allow interrupt on compare
-    sei();
+  noInterrupts();
+    setPrescaler(prescaler);
+  interrupts();
 }
 
 
 void Timeout::kill(){
-  TIMSK1 = (0<< OCIE1A); //disable interrupts on compare
-  cli();
+  setPrescaler(0);
 }
 
+
+#undef interrupts
+#undef noInterrupts

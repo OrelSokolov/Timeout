@@ -6,6 +6,7 @@
 class Timeout{
   public:
     bool every_flag;
+    short prescaler;
 
     Timeout();
     Timeout delay(short delay_ms, void (*callback)());

@@ -2,19 +2,28 @@
 
 #define toggle(pin) digitalWrite(pin, !digitalRead(pin))
 
+volatile short counter = 0;
+
 void toggleLed(){
   toggle(13);
+  if(counter>18){
+    Timer1.kill();
+  }
+  counter++;
 }
 
-int main(void)
+void setup()
 {
     Serial.begin(9600);
-    Timer1.every(1000, toggleLed).start();
     pinMode(13, OUTPUT);
-    digitalWrite(13, HIGH);
+    digitalWrite(13, LOW);
     Serial.println("Start");
+    Timer1.every(500, toggleLed).start();
+}
 
-    while(1)
-    {
-    }
+
+void loop(){
+  // Imitate some stuff
+  delay(10000);
+  Serial.println("100000ms left");
 }
